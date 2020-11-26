@@ -1,0 +1,229 @@
+// "AXx8B3P/////AAABmUvCh01qr0NYuiZsl4XR5wxHpJiI+AQBbtiTScffb3UpHwbjqT0gTnTtblgQyH6abrP5hIOA/Y4wgs8bU+1LwD/bor01NOM30m6KKqBS0hrGh0Z8IZu+1sNQyNzgm5dZNUKFI7UzEGUTlEL0L8r1v2++74NQkE8ZZFs6WyUjEowkDBpYQQE0ANXA5qDl0g2Rd7S3Y4rk9HgRJrJaZ0ojGT0uNzHdjkO7gpPYFsEDfAPVz7Pguzw7psyDlPvRmnKajnomWiCVEortJir77e1fgPSCnLobhrXL8b9PN3vaLu8ow0GxMbmJJN1ni0m+vzguiRaNy4JhDDgevKJuN4bv5CLqIt1EDMDG9ROrxcq3OJMR"
+
+package org.firstinspires.ftc.teamcode;
+
+
+
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+import java.util.List;
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.CameraDirection;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+
+
+@Autonomous(name = "Concept: TensorFlow Object Detection")
+
+public class AutoObjectDetect extends LinearOpMode {
+
+    static final double WHEEL_COUNTS_PER_MOTOR_REV = 383.6;
+    static final double WHEEL_DRIVE_GEAR_REDUCTION = 28.0f/14.0f;
+    static final double WHEEL_DIAMETER_INCHES = 3.937;
+    static final double COUNTS_PER_INCH = (WHEEL_COUNTS_PER_MOTOR_REV * WHEEL_DRIVE_GEAR_REDUCTION) /
+            (WHEEL_DIAMETER_INCHES * 3.14159265);
+
+
+    private ElapsedTime elapsedtimer = new ElapsedTime();
+    private DcMotor rfMotor;
+    private DcMotor rbMotor;
+    private DcMotor lfMotor;
+    private DcMotor lbMotor;
+
+    private DcMotor flywheel;
+
+    private Servo cage;
+    private Servo cagelift;
+
+    private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
+    private static final String LABEL_FIRST_ELEMENT = "Quad";
+    private static final String LABEL_SECOND_ELEMENT = "Single";
+
+
+
+
+    private static final String VUFORIA_KEY =
+            "AXx8B3P/////AAABmUvCh01qr0NYuiZsl4XR5wxHpJiI+AQBbtiTScffb3UpHwbjqT0gTnTtblgQyH6abrP5hIOA/Y4wgs8bU+1LwD/bor01NOM30m6KKqBS0hrGh0Z8IZu+1sNQyNzgm5dZNUKFI7UzEGUTlEL0L8r1v2++74NQkE8ZZFs6WyUjEowkDBpYQQE0ANXA5qDl0g2Rd7S3Y4rk9HgRJrJaZ0ojGT0uNzHdjkO7gpPYFsEDfAPVz7Pguzw7psyDlPvRmnKajnomWiCVEortJir77e1fgPSCnLobhrXL8b9PN3vaLu8ow0GxMbmJJN1ni0m+vzguiRaNy4JhDDgevKJuN4bv5CLqIt1EDMDG9ROrxcq3OJMR";
+
+
+    private VuforiaLocalizer vuforia;
+
+
+    private TFObjectDetector tfod;
+
+    @Override
+    public void runOpMode() {
+
+        rfMotor = hardwareMap.get(DcMotor.class, "rf");
+        rbMotor = hardwareMap.get(DcMotor.class, "rb");
+        lfMotor = hardwareMap.get(DcMotor.class, "lf");
+        lbMotor = hardwareMap.get(DcMotor.class, "lb");
+
+        flywheel = hardwareMap.get(DcMotor.class,"flywheel");
+
+        cage = hardwareMap.get(Servo.class, "cage");
+        cagelift = hardwareMap.get(Servo.class, "cagelift");
+
+        lfMotor.setDirection(DcMotor.Direction.REVERSE);
+        lbMotor.setDirection(DcMotor.Direction.FORWARD);
+
+        cage.setDirection(Servo.Direction.REVERSE);
+        cagelift.setDirection(Servo.Direction.FORWARD);
+
+        rfMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rbMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        lfMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        lbMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+
+        initVuforia();
+        initTfod();
+
+
+        if (tfod != null) {
+            tfod.activate();
+        }
+
+
+
+        telemetry.addData(">", "Press Play to start op mode");
+        telemetry.update();
+
+
+
+        setWheelMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+
+        waitForStart();
+
+
+        double distance = 50.0f;
+        int distanceCounts = (int) (distance * COUNTS_PER_INCH);
+
+        int rfCount = rfMotor.getCurrentPosition();
+        int rbCount = rfMotor.getCurrentPosition();
+        int lfCount = lfMotor.getCurrentPosition();
+        int lbCount = lfMotor.getCurrentPosition();
+
+
+
+
+
+
+        elapsedtimer.reset();
+
+
+            while (opModeIsActive()) {
+                if (tfod != null) {
+
+
+                    List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                    if (updatedRecognitions != null && updatedRecognitions.size() > 0) {
+                        telemetry.addData("# Object Detected", updatedRecognitions.size());
+
+
+                        // step through the list of recognitions and display boundary info.
+                        int i = 0;
+                        for (Recognition recognition : updatedRecognitions) {
+                            telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
+                            telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
+                                    recognition.getLeft(), recognition.getTop());
+                            telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
+                                    recognition.getRight(), recognition.getBottom());
+                        }
+
+                        telemetry.update();
+                    }
+                    elapsedtimer.reset();
+//                    if(updatedRecognitions.size() == 1){
+//
+//                       while(rfMotor.getCurrentPosition() > distanceCounts) {
+//                           setWheeldPower(0.2f, 0.2f, 0.2f, 0.2f);
+//                           telemetry.addData("rightF counts: ", rfMotor.getCurrentPosition());
+//                           telemetry.update();
+//                       }
+//
+//                        setWheelMode(DcMotor.RunMode.RUN_USING_ENCODER);
+//                    } else if(updatedRecognitions.size() == 0){
+//                        distance = 5.0f;
+//                        distanceCounts = (int) (distance * COUNTS_PER_INCH);
+//
+//                        while(rfMotor.getCurrentPosition() > distanceCounts){
+//                            setWheeldPower(-0.2f, -0.2f, -0.2f, -0.2f);
+//                        }
+//
+//
+//                    }
+                    while(rfMotor.getCurrentPosition() > distanceCounts) {
+                           setWheeldPower(0.2f, 0.2f, 0.2f, 0.2f);
+                          telemetry.addData("rightF counts: ", rfMotor.getCurrentPosition());
+                          telemetry.update();
+                       }
+                    setWheeldPower(0.0f, 0.0f, 0.0f, 0.0f);
+                    elapsedtimer.reset();
+                    while(elapsedtimer.seconds() < 10.0 && opModeIsActive()){
+                        flywheel.setPower(0.73);
+                        cagelift.setPosition(0.7);
+                        sleep(10);
+                        cage.setPosition(0.35);
+                    }
+
+                  }
+
+                }
+        if (tfod != null) {
+            tfod.shutdown();
+        }
+
+            }
+
+
+
+
+
+
+    private void initVuforia() {
+
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+
+        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters.cameraDirection = CameraDirection.BACK;
+
+
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+
+
+    }
+
+
+    private void initTfod() {
+        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        tfodParameters.minResultConfidence = 0.8f;
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
+    }
+    private void setWheelMode(DcMotor.RunMode mode) {
+        rfMotor.setMode(mode);
+        rbMotor.setMode(mode);
+        lfMotor.setMode(mode);
+        lbMotor.setMode(mode);
+    }
+
+
+    private void setWheeldPower(float lf, float lb, float rf, float rb) {
+        rfMotor.setPower(rf);
+        rbMotor.setPower(rb);
+        lfMotor.setPower(lf);
+        lbMotor.setPower(lb);
+    }
+}
