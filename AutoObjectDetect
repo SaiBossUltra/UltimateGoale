@@ -5,6 +5,7 @@ package org.firstinspires.ftc.teamcode;
 
 
 
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -27,7 +28,7 @@ public class AutoObjectDetect extends LinearOpMode {
 
     static final double WHEEL_COUNTS_PER_MOTOR_REV = 383.6;
     static final double WHEEL_DRIVE_GEAR_REDUCTION = 28.0f/14.0f;
-    static final double WHEEL_DIAMETER_INCHES = 3.937;
+    static final double WHEEL_DIAMETER_INCHES = 1.96;
     static final double COUNTS_PER_INCH = (WHEEL_COUNTS_PER_MOTOR_REV * WHEEL_DRIVE_GEAR_REDUCTION) /
             (WHEEL_DIAMETER_INCHES * 3.14159265);
 
@@ -59,6 +60,8 @@ public class AutoObjectDetect extends LinearOpMode {
 
     private TFObjectDetector tfod;
 
+    private ModernRoboticsI2cGyro gyro;
+
     @Override
     public void runOpMode() {
 
@@ -66,6 +69,7 @@ public class AutoObjectDetect extends LinearOpMode {
         rbMotor = hardwareMap.get(DcMotor.class, "rb");
         lfMotor = hardwareMap.get(DcMotor.class, "lf");
         lbMotor = hardwareMap.get(DcMotor.class, "lb");
+
 
         flywheel = hardwareMap.get(DcMotor.class,"flywheel");
 
@@ -105,7 +109,7 @@ public class AutoObjectDetect extends LinearOpMode {
         waitForStart();
 
 
-        double distance = 50.0f;
+        double distance = 42.0f;
         int distanceCounts = (int) (distance * COUNTS_PER_INCH);
 
         int rfCount = rfMotor.getCurrentPosition();
@@ -119,7 +123,7 @@ public class AutoObjectDetect extends LinearOpMode {
 
 
         elapsedtimer.reset();
-
+        setWheelMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
             while (opModeIsActive()) {
                 if (tfod != null) {
@@ -162,10 +166,15 @@ public class AutoObjectDetect extends LinearOpMode {
 //
 //
 //                    }
-                    while(rfMotor.getCurrentPosition() > distanceCounts) {
-                           setWheeldPower(0.2f, 0.2f, 0.2f, 0.2f);
-                          telemetry.addData("rightF counts: ", rfMotor.getCurrentPosition());
-                          telemetry.update();
+                    //setWheelMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                    //setWheelMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    distance = 1.0f;
+                    distanceCounts = (int) (distance * COUNTS_PER_INCH);
+                    telemetry.addData("counts: ", "rf:"+rfMotor.getCurrentPosition()+" lf:"+lfMotor.getCurrentPosition()+" back:"+lbMotor.getCurrentPosition());
+                    telemetry.update();
+
+                    while(-lfMotor.getCurrentPosition() < distanceCounts) {
+                           setWheeldPower(0.1f, 0.1f, 0.1f, 0.1f);
                        }
                     setWheeldPower(0.0f, 0.0f, 0.0f, 0.0f);
                     elapsedtimer.reset();
@@ -227,4 +236,3 @@ public class AutoObjectDetect extends LinearOpMode {
         lbMotor.setPower(lb);
     }
 }
-//
