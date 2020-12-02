@@ -115,7 +115,7 @@ public class IntakeProto extends LinearOpMode{
             elapsedtimer.reset();
 
             if(gamepad1.y){
-                while(elapsedtimer.seconds() < 0.04){
+                while(elapsedtimer.seconds() < 0.06){
                     setWheeldPower(0.4f, 0.4f, -0.4f, -0.4f);
 
                 }
