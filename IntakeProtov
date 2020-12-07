@@ -57,7 +57,13 @@ public class IntakeProto extends LinearOpMode{
 
         while(opModeIsActive()){
 
-            double flywheelpower = (gamepad1.left_trigger-gamepad1.right_trigger)*0.73;
+            double flywheelpower = 0;
+            if(gamepad1.right_bumper){
+                 flywheelpower = (gamepad1.left_trigger-gamepad1.right_trigger)*0.78;
+            } else {
+                flywheelpower = (gamepad1.left_trigger-gamepad1.right_trigger)*0.73;
+            }
+
             double intakePower = gamepad2.left_trigger-gamepad2.right_trigger;
 
 
